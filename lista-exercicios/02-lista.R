@@ -1,126 +1,150 @@
 # Arquivo: 02-lista.R
 # Autor(a): Evelyn Cristine Marçal Leal
-# Data: <06/04/2026>
+# Data: 07/04/26
 # Objetivo:
 # 1. Resolver os exercícios da lista 2
 
 
-# Configurações globais ---------------------------------------------------
+# Configuracoes globais ---------------------------------------------------
 
-# Configura o número de dígitos a serem exibidos
+# Configura o numero de digitos a serem exibidos
 options(digits = 5, scipen = 999)
+
+# carrega os pacotes necessarios
+library(here)
+library(tidyverse)
+library(janitor)
 
 
 # Exercicio 1 -------------------------------------------------------------
 
-
-## a)carregar os pacotes necessários
-
-library(here) # para usar caminhos relativos
-library(tidyverse) # carrega o dplyr, readr, ggplot2, etc.
-library(janitor) # para limpar os nomes das colunas
+## a) os pacotes foram carregados no inicio do script (secao Configuracoes globais)
 
 
+## b)
 
-## b) Aquisição dos dados ----------------------------------------------------
-
-# define o caminho relativo do arquivo de dados
+# define o caminho para o arquivo csv
 caminho_csv <- here("dados/brutos/dados-marketing.csv")
 
-# importa o arquivo usando a função read_csv do pacote readr
-dados_marketing <- read_csv(caminho_csv)
+# importa os dados e armazena no objeto dados_marketing
+dados_marketing <- read_csv(caminho_csv, show_col_types = FALSE)
 
 
-## c) executar glimpse
+## c)
 
+# exibe uma visao geral dos dados
 glimpse(dados_marketing)
-
 
 
 # Exercicio 2 -------------------------------------------------------------
 
+## a) Cada linha (observação) do arquivo representa uma semana de
+##    observação da empresa com informações sobre os gastos em diferentes
+##    canais de marketing (TV, radio, redes sociais e e-mail), a ocorrência
+##    de promoçaao, a atividade da concorrência e a receita de vendas
+##    obtida naquela semana.
 
-## a)o que cada linha (observação) do arquivo representa?
 
-### Informações sobre atividades exercidas pelo marketing
-
-
-## b)quantas observações e quantas variáveis há no objeto dados_marketing?
-
-### 9 informações e 156 variáveis
+## b) o objeto dados_marketing possui 156 observacoes e 9 variaveis
 
 
 # Exercicio 3 -------------------------------------------------------------
 
+## a)
 
-## a)Use clean_names() para padronizar os nomes das colunas e crie um novo objeto chamado dados_marketing_limpos 
-## a partir de dados_marketing.
-
-### 
+# padroniza os nomes das colunas e cria um novo objeto
 dados_marketing_limpos <- dados_marketing |>
-
-clean_names() 
-
+  clean_names()
 
 
+## b)
 
-## b)escreva e execute names(dados_marketing_limpos) e verifique os novos nomes das variáveis/colunas.
-
-###
+# mostra os nomes das variaveis após a padronização
 names(dados_marketing_limpos)
-
 
 
 # Exercicio 4 -------------------------------------------------------------
 
-#Utilizando o objeto dados_marketing_limpos, use a função select do dplyr 
-#para criar um pipeline (sequência de operações) que mostre apenas as seguintes variáveis:
-  
-#  data
-#mes
-#gasto_tv
-#gasto_radio
-#promocao
-#receita_vendas
-
-###
-
-dados_marketing_limpos |> 
- select(data, mes, gasto_tv, gasto_radio, promocao, receita_vendas)
-
+# monta uma versão mais enxuta do resultado
+dados_marketing_limpos |>
+  select(data, mes, gasto_tv, gasto_radio, promocao, receita_vendas)
 
 
 # Exercicio 5 -------------------------------------------------------------
 
+# cria a variavel gasto_total
+dados_marketing_limpos <- dados_marketing_limpos |>
+  mutate(
+    gasto_total = gasto_tv + gasto_radio + gasto_redes_sociais + gasto_email
+  )
 
-#Use mutate() para criar uma nova variável chamada gasto_total
-#no objeto dados_marketing_limpos, correspondente à soma dos gastos com:
-  
-#  gasto_tv
-#gasto_radio
-#gasto_redes_sociais
-#gasto_email
-#Depois, exiba as colunas data, mes, gasto_total e receita_vendas.
+# mostra as colunas solicitadas
+dados_marketing_limpos |>
+  select(data, mes, gasto_total, receita_vendas)
 
-#Em seguida, escreva e execute View(dados_marketing_limpos) para visualizar o objeto com a nova variável criada.
+# visualiza o objeto no RStudio
+View(dados_marketing_limpos)
 
 
-mutate(gasto_total = gasto_tv + gasto_radio + gasto_redes_sociais + gasto_email) |> 
- select(data, mes, gasto_total, receita_vendas) |> 
 # Exercicio 6 -------------------------------------------------------------
 
+# cria duas novas variaveis com nomes mais descritivos
+dados_marketing_limpos <- dados_marketing_limpos |>
+  mutate(
+    status_promocao = ifelse(promocao == 1, "Com promoção", "Sem promoção"),
+    status_concorrencia = ifelse(
+      atividade_concorrente == 1,
+      "Com concorrência",
+      "Sem concorrência"
+    )
+  )
 
+# mostra as novas variaveis
+dados_marketing_limpos |>
+  select(promocao, status_promocao, atividade_concorrente, status_concorrencia)
+
+# visualiza o objeto no RStudio
+View(dados_marketing_limpos)
 
 
 # Exercicio 7 -------------------------------------------------------------
 
+# define o caminho relativo para salvar o arquivo rds
+caminho_rds <- here("dados/limpos/dados_marketing_limpos.rds")
 
+# salva os dados limpos no formato rds
+write_rds(dados_marketing_limpos, caminho_rds)
+
+# visualiza a base de dados no RStudio
+View(dados_marketing_limpos)
 
 
 # Exercicio 8 -------------------------------------------------------------
 
-
-
+# filtra semanas com promocao e receita maior que 1000
+dados_marketing_limpos |>
+  filter(promocao == 1 & receita_vendas > 1000) |>
+  select(data, mes, receita_vendas, status_promocao)
 
 
 # Exercicio 9 -------------------------------------------------------------
+
+# cria um objeto com o resumo dos dados por mês
+resumo_mensal <- dados_marketing_limpos |>
+  group_by(mes) |>
+  summarise(
+    receita_media = mean(receita_vendas),
+    receita_total = sum(receita_vendas),
+    gasto_total_medio = mean(gasto_total),
+    semanas_com_promocao = sum(promocao)
+  ) |>
+  arrange(desc(receita_media))
+
+# mostra o resultado ordenado
+resumo_mensal
+
+# visualiza o resultado no RStudio
+View(resumo_mensal)
+
+# os tres meses com maior receita media sao:
+# mes 12, mes 11 e mes 10
